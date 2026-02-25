@@ -288,3 +288,23 @@ php -S localhost:8080
 - 🎉 拖拽上传
 - 🎉 图集预览
 - 🎉 PLIST导出
+
+## 许可证
+
+MIT License
+
+## 贡献
+
+欢迎提交Issue和Pull Request！
+
+## 联系方式
+
+如有问题或建议，请提交Issue。
+
+---
+
+**最后更新**：2025年
+**版本**：v2.0 Enhanced
+#   c o c o s _ s p r i t e _ a t l a s _ w e b _ b u i l d e r 
+ 
+ 
