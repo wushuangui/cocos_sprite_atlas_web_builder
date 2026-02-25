@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>简单测试</title>
+</head>
+<body>
+    <h1>算法测试</h1>
+    <button onclick="test()">运行测试</button>
+    <div id="output"></div>
+
+    <script src="../js/atlasPacker.js"></script>
+    <script>
+        function test() {
+            const output = document.getElementById('output');
+            output.innerHTML = '<p>测试中...</p>';
+
+            try {
+                // 创建简单的测试图片
+                const images = [];
+                for (let i = 0; i < 5; i++) {
+                    const canvas = document.createElement('canvas');
+                    canvas.width = 100 + Math.floor(Math.random() * 100);
+                    canvas.height = 100 + Math.floor(Math.random() * 100);
+                    const ctx = canvas.getContext('2d');
+                    ctx.fillStyle = `hsl(${i * 60}, 70%, 60%)`;
+                    ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+                    images.push({
+                        name: `img${i}`,
+                        width: canvas.width,
+                        height: canvas.height,
+                        img: canvas
+                    });
+                }
+
+                console.log('测试图片：', images.map(img => `${img.width}x${img.height}`));
+
+                // 测试2的幂次方模式
+                const result1 = packImages(images, 2, 1024, true);
+                console.log('2的幂次方模式结果:', result1);
+
+                // 测试原始尺寸模式
+                const result2 = packImages(images, 2, 1024, false);
+                console.log('原始尺寸模式结果:', result2);
+
+                if (result1 && result2) {
+                    output.innerHTML = `
+                        <p style="color: green;">✓ 测试通过！</p>
+                        <p>2的幂次方: ${result1.width}×${result1.height}</p>
+                        <p>原始尺寸: ${result2.width}×${result2.height}</p>
+                    `;
+                } else {
+                    output.innerHTML = '<p style="color: red;">✗ 测试失败</p>';
+                }
+            } catch (error) {
+                output.innerHTML = `<p style="color: red;">错误: ${error.message}</p>`;
+                console.error(error);
+            }
+        }
+    </script>
+</body>
+</html>

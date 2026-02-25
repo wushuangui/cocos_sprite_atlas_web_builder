@@ -1,0 +1,408 @@
+/**
+ * 性能优化相关样式
+ * 进度条、缓存统计、性能监控等
+ */
+
+/* 进度条样式 */
+.progress-container {
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    background: white;
+    border-radius: 12px;
+    padding: 24px;
+    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.15);
+    z-index: 1000;
+    min-width: 300px;
+    max-width: 500px;
+    border: 1px solid #e0e0e0;
+}
+
+.progress-info {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 12px;
+    font-size: 14px;
+    color: #333;
+    font-weight: 500;
+}
+
+.progress-percentage {
+    color: #667eea;
+    font-weight: 600;
+}
+
+.progress-bar-container {
+    width: 100%;
+    height: 8px;
+    background: #f0f0f0;
+    border-radius: 4px;
+    overflow: hidden;
+    margin-bottom: 8px;
+}
+
+.progress-bar {
+    height: 100%;
+    background: linear-gradient(90deg, #667eea 0%, #764ba2 100%);
+    border-radius: 4px;
+    transition: width 0.3s ease;
+    width: 0%;
+}
+
+.progress-stats {
+    text-align: center;
+    font-size: 12px;
+    color: #666;
+    font-weight: 500;
+}
+
+/* 缓存统计样式 */
+.cache-stats {
+    background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+    border-radius: 8px;
+    padding: 16px;
+    margin: 16px 0;
+    border: 1px solid #e0e0e0;
+}
+
+.cache-stats h4 {
+    margin: 0 0 12px 0;
+    color: #333;
+    font-size: 14px;
+    font-weight: 600;
+}
+
+.cache-stats-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(100px, 1fr));
+    gap: 12px;
+}
+
+.cache-stat-item {
+    text-align: center;
+    background: white;
+    padding: 8px;
+    border-radius: 6px;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+}
+
+.cache-stat-value {
+    font-size: 18px;
+    font-weight: 600;
+    color: #667eea;
+    display: block;
+}
+
+.cache-stat-label {
+    font-size: 11px;
+    color: #666;
+    margin-top: 2px;
+}
+
+/* 性能监控面板 */
+.performance-panel {
+    background: #f8f9fa;
+    border-radius: 8px;
+    padding: 16px;
+    margin-top: 16px;
+    border: 1px solid #e9ecef;
+}
+
+.performance-panel h4 {
+    margin: 0 0 12px 0;
+    color: #333;
+    font-size: 14px;
+    font-weight: 600;
+}
+
+.performance-metrics {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+    gap: 12px;
+}
+
+.metric-item {
+    background: white;
+    padding: 12px;
+    border-radius: 6px;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+}
+
+.metric-name {
+    font-size: 12px;
+    color: #666;
+    margin-bottom: 4px;
+    font-weight: 500;
+}
+
+.metric-value {
+    font-size: 16px;
+    font-weight: 600;
+    color: #333;
+}
+
+.metric-unit {
+    font-size: 11px;
+    color: #999;
+    margin-left: 2px;
+}
+
+/* 内存使用指示器 */
+.memory-indicator {
+    position: fixed;
+    bottom: 20px;
+    right: 20px;
+    background: rgba(0, 0, 0, 0.8);
+    color: white;
+    padding: 8px 12px;
+    border-radius: 6px;
+    font-size: 11px;
+    font-family: monospace;
+    z-index: 1000;
+    opacity: 0.8;
+    transition: opacity 0.3s ease;
+}
+
+.memory-indicator:hover {
+    opacity: 1;
+}
+
+.memory-warning {
+    background: rgba(255, 87, 34, 0.9);
+    animation: pulse 2s infinite;
+}
+
+@keyframes pulse {
+    0% { opacity: 0.8; }
+    50% { opacity: 1; }
+    100% { opacity: 0.8; }
+}
+
+/* 增强的图片列表项 */
+.image-item {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 8px;
+    border-radius: 8px;
+    transition: all 0.3s ease;
+    cursor: pointer;
+}
+
+.image-item:hover {
+    background: #f8f9fa;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+.image-size {
+    font-size: 10px;
+    color: #666;
+    margin-top: 4px;
+    font-weight: 500;
+}
+
+/* 拖拽区域增强 */
+.drop-hint {
+    text-align: center;
+    padding: 20px;
+}
+
+.drop-icon {
+    font-size: 48px;
+    margin-bottom: 12px;
+    animation: bounce 1s infinite;
+}
+
+.drop-text {
+    font-size: 16px;
+    font-weight: 600;
+    color: #667eea;
+    margin-bottom: 8px;
+}
+
+.drop-files {
+    font-size: 12px;
+    color: #666;
+    max-height: 60px;
+    overflow-y: auto;
+    background: rgba(255, 255, 255, 0.5);
+    padding: 8px;
+    border-radius: 4px;
+    margin-top: 8px;
+}
+
+@keyframes bounce {
+    0%, 20%, 50%, 80%, 100% {
+        transform: translateY(0);
+    }
+    40% {
+        transform: translateY(-10px);
+    }
+    60% {
+        transform: translateY(-5px);
+    }
+}
+
+/* 图集标签样式 */
+.atlas-tabs {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 16px;
+    padding-bottom: 8px;
+    border-bottom: 2px solid #e0e0e0;
+}
+
+.atlas-tab {
+    padding: 8px 16px;
+    border: none;
+    background: #f8f9fa;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 14px;
+    font-weight: 500;
+    transition: all 0.3s ease;
+    color: #666;
+}
+
+.atlas-tab:hover {
+    background: #e9ecef;
+    color: #333;
+}
+
+.atlas-tab.active {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
+}
+
+.atlas-content {
+    min-height: 200px;
+}
+
+.atlas-content-item {
+    animation: fadeIn 0.5s ease;
+}
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.atlas-info {
+    background: #f8f9fa;
+    padding: 12px;
+    border-radius: 6px;
+    margin-bottom: 16px;
+    display: flex;
+    gap: 16px;
+    flex-wrap: wrap;
+}
+
+.atlas-info-item {
+    font-size: 13px;
+    color: #666;
+}
+
+.atlas-info-item strong {
+    color: #333;
+    font-weight: 600;
+}
+
+/* 响应式设计 */
+@media (max-width: 768px) {
+    .progress-container {
+        min-width: 280px;
+        padding: 20px;
+    }
+    
+    .cache-stats-grid {
+        grid-template-columns: repeat(2, 1fr);
+    }
+    
+    .performance-metrics {
+        grid-template-columns: repeat(2, 1fr);
+    }
+    
+    .memory-indicator {
+        bottom: 10px;
+        right: 10px;
+        font-size: 10px;
+        padding: 6px 8px;
+    }
+    
+    .atlas-tabs {
+        flex-wrap: wrap;
+    }
+    
+    .atlas-tab {
+        flex: 1;
+        min-width: 80px;
+        text-align: center;
+    }
+}
+
+/* 暗色主题支持 */
+@media (prefers-color-scheme: dark) {
+    .progress-container {
+        background: #2d3748;
+        border-color: #4a5568;
+        color: #e2e8f0;
+    }
+    
+    .progress-info {
+        color: #e2e8f0;
+    }
+    
+    .progress-bar-container {
+        background: #4a5568;
+    }
+    
+    .cache-stats {
+        background: linear-gradient(135deg, #2d3748 0%, #4a5568 100%);
+        border-color: #4a5568;
+    }
+    
+    .cache-stat-item {
+        background: #2d3748;
+        color: #e2e8f0;
+    }
+    
+    .performance-panel {
+        background: #2d3748;
+        border-color: #4a5568;
+        color: #e2e8f0;
+    }
+    
+    .metric-item {
+        background: #2d3748;
+        color: #e2e8f0;
+    }
+    
+    .atlas-tab {
+        background: #4a5568;
+        color: #e2e8f0;
+    }
+    
+    .atlas-tab:hover {
+        background: #2d3748;
+    }
+    
+    .atlas-info {
+        background: #4a5568;
+        color: #e2e8f0;
+    }
+    
+    .atlas-info-item strong {
+        color: #e2e8f0;
+    }
+}

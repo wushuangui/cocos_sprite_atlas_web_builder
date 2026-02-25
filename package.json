@@ -1,0 +1,32 @@
+{
+  "name": "cocos-sprite-atlas-web-builder",
+  "version": "3.0.0",
+  "description": "Cocos Creator图集生成器 - 基于Web的图集合成工具，支持MaxRectangles和Shelf算法",
+  "main": "index.html",
+  "scripts": {
+    "start": "npx http-server -p 8080 -o",
+    "test": "npx http-server -p 8081 -o",
+    "serve": "npx http-server -p 8080"
+  },
+  "keywords": [
+    "cocos",
+    "sprite-atlas",
+    "texture-packer",
+    "game",
+    "javascript",
+    "canvas"
+  ],
+  "author": "Auto",
+  "license": "MIT",
+  "devDependencies": {
+    "http-server": "^14.1.1"
+  },
+  "repository": {
+    "type": "git",
+    "url": ""
+  },
+  "bugs": {
+    "url": ""
+  },
+  "homepage": ""
+}

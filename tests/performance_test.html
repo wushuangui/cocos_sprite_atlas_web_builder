@@ -1,0 +1,945 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>性能优化测试 - Cocos图集生成器</title>
+    <link rel="stylesheet" href="css/styles.css">
+    <link rel="stylesheet" href="css/performance.css">
+    <style>
+        .test-container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        
+        .test-section {
+            background: white;
+            border-radius: 12px;
+            padding: 24px;
+            margin-bottom: 24px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+        }
+        
+        .test-title {
+            font-size: 20px;
+            font-weight: 600;
+            color: #333;
+            margin-bottom: 16px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+        
+        .test-icon {
+            width: 32px;
+            height: 32px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 16px;
+        }
+        
+        .test-controls {
+            display: flex;
+            gap: 16px;
+            margin-bottom: 24px;
+            flex-wrap: wrap;
+            align-items: center;
+        }
+        
+        .test-input {
+            padding: 8px 12px;
+            border: 2px solid #e0e0e0;
+            border-radius: 6px;
+            font-size: 14px;
+            min-width: 120px;
+        }
+        
+        .test-button {
+            padding: 10px 20px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 500;
+            transition: all 0.3s ease;
+        }
+        
+        .test-button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(102, 126, 234, 0.3);
+        }
+        
+        .test-button:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+        }
+        
+        .test-results {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 20px;
+        }
+        
+        .result-card {
+            background: #f8f9fa;
+            border-radius: 8px;
+            padding: 16px;
+            border: 1px solid #e9ecef;
+        }
+        
+        .result-title {
+            font-size: 14px;
+            font-weight: 600;
+            color: #333;
+            margin-bottom: 12px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        .result-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 12px;
+        }
+        
+        .result-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 8px 0;
+            border-bottom: 1px solid #e9ecef;
+        }
+        
+        .result-item:last-child {
+            border-bottom: none;
+        }
+        
+        .result-label {
+            font-size: 12px;
+            color: #666;
+        }
+        
+        .result-value {
+            font-size: 14px;
+            font-weight: 600;
+            color: #333;
+        }
+        
+        .result-value.good {
+            color: #28a745;
+        }
+        
+        .result-value.warning {
+            color: #ffc107;
+        }
+        
+        .result-value.bad {
+            color: #dc3545;
+        }
+        
+        .comparison-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 16px;
+        }
+        
+        .comparison-table th,
+        .comparison-table td {
+            padding: 12px;
+            text-align: left;
+            border-bottom: 1px solid #e9ecef;
+        }
+        
+        .comparison-table th {
+            background: #f8f9fa;
+            font-weight: 600;
+            color: #333;
+        }
+        
+        .comparison-table .improvement {
+            color: #28a745;
+            font-weight: 600;
+        }
+        
+        .comparison-table .degradation {
+            color: #dc3545;
+            font-weight: 600;
+        }
+        
+        .chart-container {
+            height: 200px;
+            margin-top: 16px;
+            background: white;
+            border-radius: 6px;
+            padding: 16px;
+            border: 1px solid #e9ecef;
+        }
+        
+        .status-indicator {
+            display: inline-block;
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            margin-right: 8px;
+        }
+        
+        .status-indicator.success {
+            background: #28a745;
+        }
+        
+        .status-indicator.warning {
+            background: #ffc107;
+        }
+        
+        .status-indicator.error {
+            background: #dc3545;
+        }
+        
+        .loading-spinner {
+            display: inline-block;
+            width: 16px;
+            height: 16px;
+            border: 2px solid #f3f3f3;
+            border-top: 2px solid #667eea;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin-left: 8px;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        
+        .test-summary {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border-radius: 8px;
+            padding: 20px;
+            margin-top: 20px;
+        }
+        
+        .test-summary h3 {
+            margin: 0 0 12px 0;
+            font-size: 18px;
+        }
+        
+        .summary-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 16px;
+            margin-top: 16px;
+        }
+        
+        .summary-item {
+            text-align: center;
+            background: rgba(255, 255, 255, 0.1);
+            padding: 12px;
+            border-radius: 6px;
+        }
+        
+        .summary-value {
+            font-size: 24px;
+            font-weight: 600;
+            display: block;
+        }
+        
+        .summary-label {
+            font-size: 12px;
+            opacity: 0.9;
+            margin-top: 4px;
+        }
+    </style>
+</head>
+<body>
+    <div class="test-container">
+        <div class="header">
+            <h1>🚀 性能优化测试</h1>
+            <p>测试图集生成器的性能优化效果</p>
+        </div>
+
+        <div class="test-section">
+            <div class="test-title">
+                <div class="test-icon">📊</div>
+                批量性能测试
+            </div>
+            <div class="test-controls">
+                <label>图片数量：</label>
+                <input type="number" id="imageCount" class="test-input" value="20" min="5" max="100">
+                
+                <label>算法：</label>
+                <select id="testAlgorithm" class="test-input">
+                    <option value="maxRectangles">MaxRectangles</option>
+                    <option value="shelf">Shelf</option>
+                    <option value="both">对比测试</option>
+                </select>
+                
+                <label>测试模式：</label>
+                <select id="testMode" class="test-input">
+                    <option value="normal">普通模式</option>
+                    <option value="optimized">优化模式</option>
+                    <option value="comparison">对比模式</option>
+                </select>
+                
+                <button id="startTest" class="test-button">开始测试</button>
+                <button id="clearResults" class="test-button" style="background: #6c757d;">清除结果</button>
+            </div>
+            
+            <div id="testProgress" class="progress-container" style="display: none;">
+                <div class="progress-info">
+                    <span class="progress-message">测试中...</span>
+                    <span class="progress-percentage">0%</span>
+                </div>
+                <div class="progress-bar-container">
+                    <div class="progress-bar"></div>
+                </div>
+                <div class="progress-stats">
+                    <span class="progress-current">0</span> / <span class="progress-total">0</span>
+                </div>
+            </div>
+            
+            <div id="testResults" class="test-results"></div>
+        </div>
+
+        <div class="test-section">
+            <div class="test-title">
+                <div class="test-icon">💾</div>
+                内存使用监控
+            </div>
+            <div id="memoryStats" class="result-grid"></div>
+            <div class="chart-container">
+                <canvas id="memoryChart" width="400" height="150"></canvas>
+            </div>
+        </div>
+
+        <div class="test-section">
+            <div class="test-title">
+                <div class="test-icon">⚡</div>
+                缓存性能分析
+            </div>
+            <div id="cacheStats" class="result-grid"></div>
+        </div>
+
+        <div class="test-section">
+            <div class="test-title">
+                <div class="test-icon">📈</div>
+                算法性能对比
+            </div>
+            <div id="algorithmComparison"></div>
+        </div>
+
+        <div id="testSummary" class="test-summary" style="display: none;">
+            <h3>🎯 测试总结</h3>
+            <div id="summaryContent" class="summary-grid"></div>
+        </div>
+    </div>
+
+    <script src="lib/jszip.min.js"></script>
+    <script src="js/FileSaver.js"></script>
+    <script src="js/performanceOptimizer.js"></script>
+    <script src="js/atlasPacker.js"></script>
+    <script src="js/maxRectanglesPacker.js"></script>
+    <script src="js/imageGrouper.js"></script>
+    <script src="js/multiAtlasPacker.js"></script>
+    
+    <script>
+        // 性能测试类
+        class PerformanceTest {
+            constructor() {
+                this.results = [];
+                this.isRunning = false;
+                this.testImages = [];
+                this.progressBar = {
+                    element: document.getElementById('testProgress'),
+                    bar: document.querySelector('#testProgress .progress-bar'),
+                    message: document.querySelector('#testProgress .progress-message'),
+                    percentage: document.querySelector('#testProgress .progress-percentage'),
+                    current: document.querySelector('#testProgress .progress-current'),
+                    total: document.querySelector('#testProgress .progress-total')
+                };
+                
+                this.initializeEventListeners();
+                this.generateTestImages();
+                this.startMemoryMonitoring();
+            }
+
+            initializeEventListeners() {
+                document.getElementById('startTest').addEventListener('click', () => this.startTest());
+                document.getElementById('clearResults').addEventListener('click', () => this.clearResults());
+            }
+
+            // 生成测试图片
+            generateTestImages() {
+                const sizes = [
+                    { width: 64, height: 64, count: 10 },
+                    { width: 128, height: 128, count: 15 },
+                    { width: 256, height: 256, count: 8 },
+                    { width: 512, height: 512, count: 3 },
+                    { width: 32, height: 64, count: 12 },
+                    { width: 64, height: 32, count: 12 }
+                ];
+
+                this.testImages = [];
+                let id = 0;
+                
+                sizes.forEach(size => {
+                    for (let i = 0; i < size.count; i++) {
+                        this.testImages.push({
+                            name: `test_${id++}`,
+                            width: size.width,
+                            height: size.height
+                        });
+                    }
+                });
+            }
+
+            // 开始测试
+            async startTest() {
+                if (this.isRunning) return;
+                
+                this.isRunning = true;
+                this.results = [];
+                
+                const config = this.getTestConfig();
+                const iterations = Math.max(1, Math.floor(100 / config.imageCount));
+                
+                this.showProgress(0, '准备测试...', 0, iterations);
+                this.updateMemoryStats();
+                
+                try {
+                    await this.runPerformanceTest(config, iterations);
+                    this.displayResults();
+                    this.displaySummary();
+                } catch (error) {
+                    console.error('测试失败:', error);
+                    this.showError('测试失败: ' + error.message);
+                } finally {
+                    this.isRunning = false;
+                    this.hideProgress();
+                }
+            }
+
+            // 获取测试配置
+            getTestConfig() {
+                return {
+                    imageCount: parseInt(document.getElementById('imageCount').value),
+                    algorithm: document.getElementById('testAlgorithm').value,
+                    mode: document.getElementById('testMode').value,
+                    usePowerOfTwo: true,
+                    padding: 2,
+                    maxWidth: 2048
+                };
+            }
+
+            // 运行性能测试
+            async runPerformanceTest(config, iterations) {
+                const testImages = this.testImages.slice(0, config.imageCount);
+                
+                for (let i = 0; i < iterations; i++) {
+                    this.showProgress(
+                        (i / iterations) * 100,
+                        `第 ${i + 1}/${iterations} 轮测试...`,
+                        i + 1,
+                        iterations
+                    );
+
+                    const result = await this.runSingleTest(config, testImages, i);
+                    this.results.push(result);
+                    
+                    // 更新内存统计
+                    if (i % 5 === 0) {
+                        this.updateMemoryStats();
+                    }
+                    
+                    // 短暂延迟，避免阻塞UI
+                    await new Promise(resolve => setTimeout(resolve, 100));
+                }
+            }
+
+            // 运行单次测试
+            async runSingleTest(config, images, iteration) {
+                const startTime = performance.now();
+                const startMemory = performance.memory ? performance.memory.usedJSHeapSize : 0;
+                
+                let result;
+                
+                if (config.algorithm === 'both') {
+                    // 对比测试
+                    const maxRectResult = await this.testAlgorithm('maxRectangles', config, images);
+                    const shelfResult = await this.testAlgorithm('shelf', config, images);
+                    
+                    result = {
+                        iteration,
+                        timestamp: new Date().toISOString(),
+                        maxRectangles: maxRectResult,
+                        shelf: shelfResult,
+                        comparison: this.compareAlgorithms(maxRectResult, shelfResult)
+                    };
+                } else {
+                    // 单算法测试
+                    const algorithmResult = await this.testAlgorithm(config.algorithm, config, images);
+                    
+                    result = {
+                        iteration,
+                        timestamp: new Date().toISOString(),
+                        algorithm: config.algorithm,
+                        ...algorithmResult
+                    };
+                }
+                
+                const endTime = performance.now();
+                const endMemory = performance.memory ? performance.memory.usedJSHeapSize : 0;
+                
+                result.duration = endTime - startTime;
+                result.memoryDelta = endMemory - startMemory;
+                result.cacheStats = PerformanceOptimizer.algorithmCache.getStats();
+                
+                return result;
+            }
+
+            // 测试特定算法
+            async testAlgorithm(algorithm, config, images) {
+                const algorithmStart = performance.now();
+                
+                // 模拟图片加载
+                const loadedImages = images.map(img => ({
+                    ...img,
+                    img: { width: img.width, height: img.height }
+                }));
+                
+                let packResult;
+                
+                // 根据模式选择是否使用缓存
+                if (config.mode === 'optimized' || config.mode === 'comparison') {
+                    // 优化模式 - 使用缓存
+                    const cacheKey = { 
+                        padding: config.padding, 
+                        maxWidth: config.maxWidth, 
+                        usePowerOfTwo: config.usePowerOfTwo 
+                    };
+                    
+                    const cachedResult = PerformanceOptimizer.algorithmCache.get(
+                        loadedImages, algorithm, cacheKey
+                    );
+                    
+                    if (cachedResult) {
+                        packResult = cachedResult;
+                    } else {
+                        packResult = this.runPackingAlgorithm(algorithm, loadedImages, config);
+                        PerformanceOptimizer.algorithmCache.set(
+                            loadedImages, algorithm, cacheKey, packResult
+                        );
+                    }
+                } else {
+                    // 普通模式 - 不使用缓存
+                    packResult = this.runPackingAlgorithm(algorithm, loadedImages, config);
+                }
+                
+                const algorithmEnd = performance.now();
+                
+                return {
+                    algorithm,
+                    success: !!packResult,
+                    duration: algorithmEnd - algorithmStart,
+                    atlasSize: packResult ? { width: packResult.width, height: packResult.height } : null,
+                    efficiency: packResult ? this.calculateEfficiency(loadedImages, packResult.width, packResult.height) : 0,
+                    frameCount: packResult ? packResult.frames.length : 0
+                };
+            }
+
+            // 运行打包算法
+            runPackingAlgorithm(algorithm, images, config) {
+                try {
+                    if (algorithm === 'maxRectangles') {
+                        return packImagesWithMaxRectangles(
+                            images, 
+                            config.padding, 
+                            config.maxWidth, 
+                            config.usePowerOfTwo
+                        );
+                    } else {
+                        return packImages(
+                            images, 
+                            config.padding, 
+                            config.maxWidth, 
+                            config.usePowerOfTwo
+                        );
+                    }
+                } catch (error) {
+                    console.error(`${algorithm} 算法失败:`, error);
+                    return null;
+                }
+            }
+
+            // 计算空间利用率
+            calculateEfficiency(images, atlasWidth, atlasHeight) {
+                const totalArea = atlasWidth * atlasHeight;
+                const usedArea = images.reduce((sum, img) => sum + img.width * img.height, 0);
+                return ((usedArea / totalArea) * 100).toFixed(2);
+            }
+
+            // 比较算法性能
+            compareAlgorithms(maxRectResult, shelfResult) {
+                return {
+                    speedWinner: maxRectResult.duration < shelfResult.duration ? 'maxRectangles' : 'shelf',
+                    efficiencyWinner: maxRectResult.efficiency > shelfResult.efficiency ? 'maxRectangles' : 'shelf',
+                    speedDifference: Math.abs(maxRectResult.duration - shelfResult.duration),
+                    efficiencyDifference: Math.abs(maxRectResult.efficiency - shelfResult.efficiency)
+                };
+            }
+
+            // 显示进度
+            showProgress(percentage, message, current, total) {
+                this.progressBar.element.style.display = 'block';
+                this.progressBar.bar.style.width = `${percentage}%`;
+                this.progressBar.message.textContent = message;
+                this.progressBar.percentage.textContent = `${Math.round(percentage)}%`;
+                this.progressBar.current.textContent = current;
+                this.progressBar.total.textContent = total;
+            }
+
+            // 隐藏进度
+            hideProgress() {
+                this.progressBar.element.style.display = 'none';
+            }
+
+            // 显示结果
+            displayResults() {
+                const container = document.getElementById('testResults');
+                container.innerHTML = '';
+
+                if (this.results.length === 0) return;
+
+                // 显示最新结果
+                const latestResult = this.results[this.results.length - 1];
+                
+                if (latestResult.maxRectangles && latestResult.shelf) {
+                    this.displayComparisonResult(latestResult, container);
+                } else {
+                    this.displaySingleResult(latestResult, container);
+                }
+
+                // 显示内存统计
+                this.displayMemoryStats();
+                
+                // 显示缓存统计
+                this.displayCacheStats();
+                
+                // 显示算法对比
+                this.displayAlgorithmComparison();
+            }
+
+            // 显示对比结果
+            displayComparisonResult(result, container) {
+                const card = document.createElement('div');
+                card.className = 'result-card';
+                card.innerHTML = `
+                    <div class="result-title">
+                        <span class="status-indicator ${result.maxRectangles.success ? 'success' : 'error'}"></span>
+                        MaxRectangles vs Shelf 对比
+                    </div>
+                    <div class="result-grid">
+                        <div class="result-item">
+                            <span class="result-label">速度对比</span>
+                            <span class="result-value ${result.comparison.speedWinner === 'maxRectangles' ? 'good' : 'warning'}">
+                                ${result.comparison.speedWinner} 更快
+                            </span>
+                        </div>
+                        <div class="result-item">
+                            <span class="result-label">效率对比</span>
+                            <span class="result-value ${result.comparison.efficiencyWinner === 'maxRectangles' ? 'good' : 'warning'}">
+                                ${result.comparison.efficiencyWinner} 更高
+                            </span>
+                        </div>
+                        <div class="result-item">
+                            <span class="result-label">速度差异</span>
+                            <span class="result-value">${result.comparison.speedDifference.toFixed(2)}ms</span>
+                        </div>
+                        <div class="result-item">
+                            <span class="result-label">效率差异</span>
+                            <span class="result-value">${result.comparison.efficiencyDifference.toFixed(2)}%</span>
+                        </div>
+                    </div>
+                `;
+                container.appendChild(card);
+            }
+
+            // 显示单算法结果
+            displaySingleResult(result, container) {
+                const card = document.createElement('div');
+                card.className = 'result-card';
+                card.innerHTML = `
+                    <div class="result-title">
+                        <span class="status-indicator ${result.success ? 'success' : 'error'}"></span>
+                        ${result.algorithm === 'maxRectangles' ? 'MaxRectangles' : 'Shelf'} 结果
+                    </div>
+                    <div class="result-grid">
+                        <div class="result-item">
+                            <span class="result-label">执行时间</span>
+                            <span class="result-value">${result.duration.toFixed(2)}ms</span>
+                        </div>
+                        <div class="result-item">
+                            <span class="result-label">空间利用率</span>
+                            <span class="result-value ${result.efficiency > 85 ? 'good' : result.efficiency > 70 ? 'warning' : 'bad'}">
+                                ${result.efficiency}%
+                            </span>
+                        </div>
+                        <div class="result-item">
+                            <span class="result-label">图集尺寸</span>
+                            <span class="result-value">
+                                ${result.atlasSize ? `${result.atlasSize.width}×${result.atlasSize.height}` : 'N/A'}
+                            </span>
+                        </div>
+                        <div class="result-item">
+                            <span class="result-label">图片数量</span>
+                            <span class="result-value">${result.frameCount}</span>
+                        </div>
+                    </div>
+                `;
+                container.appendChild(card);
+            }
+
+            // 显示内存统计
+            displayMemoryStats() {
+                const container = document.getElementById('memoryStats');
+                const memoryInfo = performance.memory || {};
+                
+                container.innerHTML = `
+                    <div class="result-item">
+                        <span class="result-label">已用内存</span>
+                        <span class="result-value">${this.formatBytes(memoryInfo.usedJSHeapSize || 0)}</span>
+                    </div>
+                    <div class="result-item">
+                        <span class="result-label">总内存</span>
+                        <span class="result-value">${this.formatBytes(memoryInfo.totalJSHeapSize || 0)}</span>
+                    </div>
+                    <div class="result-item">
+                        <span class="result-label">内存限制</span>
+                        <span class="result-value">${this.formatBytes(memoryInfo.jsHeapSizeLimit || 0)}</span>
+                    </div>
+                    <div class="result-item">
+                        <span class="result-label">内存使用率</span>
+                        <span class="result-value ${((memoryInfo.usedJSHeapSize || 0) / (memoryInfo.totalJSHeapSize || 1) * 100) > 80 ? 'bad' : 'good'}">
+                            ${(((memoryInfo.usedJSHeapSize || 0) / (memoryInfo.totalJSHeapSize || 1)) * 100).toFixed(1)}%
+                        </span>
+                    </div>
+                `;
+            }
+
+            // 更新内存统计
+            updateMemoryStats() {
+                this.displayMemoryStats();
+                
+                // 更新图表
+                this.updateMemoryChart();
+            }
+
+            // 更新内存图表
+            updateMemoryChart() {
+                const canvas = document.getElementById('memoryChart');
+                const ctx = canvas.getContext('2d');
+                const memoryInfo = performance.memory || {};
+                
+                // 清空画布
+                ctx.clearRect(0, 0, canvas.width, canvas.height);
+                
+                // 简单的内存使用条形图
+                const used = memoryInfo.usedJSHeapSize || 0;
+                const total = memoryInfo.totalJSHeapSize || 1;
+                const percentage = (used / total) * 100;
+                
+                ctx.fillStyle = percentage > 80 ? '#dc3545' : percentage > 60 ? '#ffc107' : '#28a745';
+                ctx.fillRect(10, 50, (canvas.width - 20) * (percentage / 100), 30);
+                
+                ctx.fillStyle = '#333';
+                ctx.font = '14px Arial';
+                ctx.fillText(`内存使用: ${this.formatBytes(used)} / ${this.formatBytes(total)}`, 10, 30);
+                ctx.fillText(`${percentage.toFixed(1)}%`, 10, 100);
+            }
+
+            // 显示缓存统计
+            displayCacheStats() {
+                const container = document.getElementById('cacheStats');
+                const stats = PerformanceOptimizer.algorithmCache.getStats();
+                
+                container.innerHTML = `
+                    <div class="result-item">
+                        <span class="result-label">缓存命中</span>
+                        <span class="result-value good">${stats.hits}</span>
+                    </div>
+                    <div class="result-item">
+                        <span class="result-label">缓存未命中</span>
+                        <span class="result-value warning">${stats.misses}</span>
+                    </div>
+                    <div class="result-item">
+                        <span class="result-label">命中率</span>
+                        <span class="result-value ${parseFloat(stats.hitRate) > 50 ? 'good' : 'warning'}">
+                            ${stats.hitRate}
+                        </span>
+                    </div>
+                    <div class="result-item">
+                        <span class="result-label">缓存大小</span>
+                        <span class="result-value">${stats.size} / ${stats.maxSize}</span>
+                    </div>
+                `;
+            }
+
+            // 显示算法对比
+            displayAlgorithmComparison() {
+                const container = document.getElementById('algorithmComparison');
+                if (this.results.length === 0) return;
+
+                const maxRectResults = this.results.filter(r => r.maxRectangles).map(r => r.maxRectangles);
+                const shelfResults = this.results.filter(r => r.shelf).map(r => r.shelf);
+
+                if (maxRectResults.length === 0 || shelfResults.length === 0) return;
+
+                const avgMaxRect = this.calculateAverage(maxRectResults);
+                const avgShelf = this.calculateAverage(shelfResults);
+
+                container.innerHTML = `
+                    <table class="comparison-table">
+                        <thead>
+                            <tr>
+                                <th>指标</th>
+                                <th>MaxRectangles</th>
+                                <th>Shelf</th>
+                                <th>差异</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td>平均执行时间</td>
+                                <td>${avgMaxRect.duration.toFixed(2)}ms</td>
+                                <td>${avgShelf.duration.toFixed(2)}ms</td>
+                                <td class="${avgMaxRect.duration < avgShelf.duration ? 'improvement' : 'degradation'}">
+                                    ${avgMaxRect.duration < avgShelf.duration ? '快' : '慢'} 
+                                    ${Math.abs(avgMaxRect.duration - avgShelf.duration).toFixed(2)}ms
+                                </td>
+                            </tr>
+                            <tr>
+                                <td>平均空间利用率</td>
+                                <td>${avgMaxRect.efficiency.toFixed(2)}%</td>
+                                <td>${avgShelf.efficiency.toFixed(2)}%</td>
+                                <td class="${avgMaxRect.efficiency > avgShelf.efficiency ? 'improvement' : 'degradation'}">
+                                    ${avgMaxRect.efficiency > avgShelf.efficiency ? '高' : '低'} 
+                                    ${Math.abs(avgMaxRect.efficiency - avgShelf.efficiency).toFixed(2)}%
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                `;
+            }
+
+            // 计算平均值
+            calculateAverage(results) {
+                return {
+                    duration: results.reduce((sum, r) => sum + r.duration, 0) / results.length,
+                    efficiency: results.reduce((sum, r) => sum + parseFloat(r.efficiency), 0) / results.length
+                };
+            }
+
+            // 显示总结
+            displaySummary() {
+                const summary = document.getElementById('testSummary');
+                const content = document.getElementById('summaryContent');
+                
+                if (this.results.length === 0) return;
+
+                const avgDuration = this.results.reduce((sum, r) => sum + r.duration, 0) / this.results.length;
+                const successRate = this.results.filter(r => 
+                    (r.maxRectangles && r.maxRectangles.success) || 
+                    (r.shelf && r.shelf.success) || 
+                    r.success
+                ).length / this.results.length * 100;
+
+                const cacheStats = PerformanceOptimizer.algorithmCache.getStats();
+
+                content.innerHTML = `
+                    <div class="summary-item">
+                        <span class="summary-value">${this.results.length}</span>
+                        <div class="summary-label">测试轮次</div>
+                    </div>
+                    <div class="summary-item">
+                        <span class="summary-value">${avgDuration.toFixed(0)}ms</span>
+                        <div class="summary-label">平均耗时</div>
+                    </div>
+                    <div class="summary-item">
+                        <span class="summary-value">${successRate.toFixed(1)}%</span>
+                        <div class="summary-label">成功率</div>
+                    </div>
+                    <div class="summary-item">
+                        <span class="summary-value">${cacheStats.hitRate}</span>
+                        <div class="summary-label">缓存命中率</div>
+                    </div>
+                `;
+
+                summary.style.display = 'block';
+            }
+
+            // 格式化字节数
+            formatBytes(bytes) {
+                if (bytes === 0) return '0 B';
+                const k = 1024;
+                const sizes = ['B', 'KB', 'MB', 'GB'];
+                const i = Math.floor(Math.log(bytes) / Math.log(k));
+                return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+            }
+
+            // 清除结果
+            clearResults() {
+                this.results = [];
+                document.getElementById('testResults').innerHTML = '';
+                document.getElementById('testSummary').style.display = 'none';
+                document.getElementById('algorithmComparison').innerHTML = '';
+                
+                // 重置缓存统计
+                PerformanceOptimizer.algorithmCache.clear();
+                this.displayCacheStats();
+                
+                // 重置内存统计
+                this.updateMemoryStats();
+            }
+
+            // 开始内存监控
+            startMemoryMonitoring() {
+                setInterval(() => {
+                    if (!this.isRunning) {
+                        this.updateMemoryStats();
+                    }
+                }, 5000); // 每5秒更新一次
+            }
+
+            // 显示错误
+            showError(message) {
+                const container = document.getElementById('testResults');
+                container.innerHTML = `
+                    <div class="result-card" style="border-color: #dc3545;">
+                        <div class="result-title" style="color: #dc3545;">
+                            <span class="status-indicator error"></span>
+                            测试错误
+                        </div>
+                        <div style="color: #dc3545; padding: 12px; background: #f8d7da; border-radius: 6px;">
+                            ${message}
+                        </div>
+                    </div>
+                `;
+            }
+        }
+
+        // 初始化测试
+        document.addEventListener('DOMContentLoaded', () => {
+            new PerformanceTest();
+        });
+    </script>
+</body>
+</html>

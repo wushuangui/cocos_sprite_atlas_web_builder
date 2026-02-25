@@ -1,0 +1,199 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cocos 图集生成器</title>
+    <link rel="stylesheet" href="css/styles.css">
+    <link rel="stylesheet" href="css/performance.css">
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>Cocos 图集生成器</h1>
+            <p>将散图快速合成为 Cocos 兼容的图集文件</p>
+        </div>
+
+        <div class="content">
+            <div class="control-panel">
+                <div class="control-group">
+                    <label for="atlasName">图集名称</label>
+                    <input type="text" id="atlasName" placeholder="例如: game_ui" value="sprite_atlas">
+                </div>
+                <div class="control-row">
+                    <div class="control-group">
+                        <label for="padding">图片间距 (px)</label>
+                        <input type="number" id="padding" value="2" min="0">
+                    </div>
+                    <div class="control-group">
+                        <label for="maxWidth">最大宽度 (px)</label>
+                        <input type="number" id="maxWidth" value="2048" min="512">
+                    </div>
+                </div>
+                <div class="control-group checkbox-group">
+                    <label class="checkbox-label">
+                        <input type="checkbox" id="powerOfTwo" checked>
+                        <span>图集大小调整为2的幂次方 (2048, 1024, 512...)</span>
+                    </label>
+                </div>
+                <div class="control-group">
+                    <label for="algorithm">打包算法</label>
+                    <select id="algorithm" class="select-input">
+                        <option value="maxRectangles">MaxRectangles (推荐 - 最优空间利用率)</option>
+                        <option value="shelf">Shelf (传统算法)</option>
+                    </select>
+                    <div id="algorithmSuggestion" style="margin-top: 8px; font-size: 12px; color: #667eea; display: none;"></div>
+                </div>
+                <!-- 多图集功能暂时隐藏
+                <div class="control-group checkbox-group">
+                    <label class="checkbox-label">
+                        <input type="checkbox" id="multiAtlas">
+                        <span>启用多图集 (自动拆分大图集)</span>
+                    </label>
+                </div>
+                -->
+            </div>
+
+            <div class="file-upload" id="dropZone">
+                <input type="file" id="fileInput" multiple accept="image/png,image/jpeg,image/jpg">
+                <div class="file-upload-icon">📁</div>
+                <div class="file-upload-text">点击或拖拽图片到此处</div>
+                <div class="file-upload-hint">支持 PNG、JPG 格式，可多选</div>
+            </div>
+
+            <div class="preview-container">
+                <div class="preview-section">
+                    <h3>已选择图片 <span id="imageCount">(0)</span></h3>
+                    <div class="image-list" id="imageList"></div>
+                </div>
+                <div class="preview-section">
+                    <h3>图集预览</h3>
+                    <div class="atlas-preview" id="atlasPreview">
+                        <div class="placeholder">生成图集后在此预览</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="stats" id="stats"></div>
+
+            <div class="button-group">
+                <button class="btn-clear" id="clearBtn" disabled>清空</button>
+                <button class="btn-generate" id="generateBtn" disabled>生成图集</button>
+                <button class="btn-download" id="downloadBtn" disabled>下载图集</button>
+            </div>
+
+            <div class="status" id="status"></div>
+
+            <!-- 监控数据面板 -->
+            <div class="monitoring-panel" id="monitoringPanel" style="display: none; margin-top: 30px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); border-radius: 12px; padding: 25px; color: white;">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+                    <h3 style="margin: 0; font-size: 18px;">📊 性能监控数据</h3>
+                    <button id="closeMonitoringPanel" style="background: rgba(255,255,255,0.2); border: none; color: white; width: 32px; height: 32px; border-radius: 50%; cursor: pointer; font-size: 24px; line-height: 1; display: flex; align-items: center; justify-content: center; transition: background 0.2s;flex: 0 0 auto;" onmouseover="this.style.background='rgba(255,255,255,0.3)'" onmouseout="this.style.background='rgba(255,255,255,0.2)'">&times;</button>
+                </div>
+                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px; margin-bottom: 20px;">
+                    <div style="background: rgba(255,255,255,0.1); padding: 15px; border-radius: 8px;">
+                        <div style="font-size: 12px; opacity: 0.8;">会话时长</div>
+                        <div style="font-size: 24px; font-weight: 600;" id="monitoringSessionDuration">0s</div>
+                    </div>
+                    <div style="background: rgba(255,255,255,0.1); padding: 15px; border-radius: 8px;">
+                        <div style="font-size: 12px; opacity: 0.8;">上传图片</div>
+                        <div style="font-size: 24px; font-weight: 600;" id="monitoringImagesUploaded">0</div>
+                    </div>
+                    <div style="background: rgba(255,255,255,0.1); padding: 15px; border-radius: 8px;">
+                        <div style="font-size: 12px; opacity: 0.8;">生成图集</div>
+                        <div style="font-size: 24px; font-weight: 600;" id="monitoringAtlasesGenerated">0</div>
+                    </div>
+                    <div style="background: rgba(255,255,255,0.1); padding: 15px; border-radius: 8px;">
+                        <div style="font-size: 12px; opacity: 0.8;">错误次数</div>
+                        <div style="font-size: 24px; font-weight: 600;" id="monitoringErrorsCount">0</div>
+                    </div>
+                </div>
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
+                    <div>
+                        <h4 style="margin: 0 0 10px 0; font-size: 14px;">算法使用统计</h4>
+                        <div id="monitoringAlgorithmsStats" style="font-size: 13px;"></div>
+                    </div>
+                    <div>
+                        <h4 style="margin: 0 0 10px 0; font-size: 14px;">性能指标 (ms)</h4>
+                        <div id="monitoringPerformanceStats" style="font-size: 13px;"></div>
+                    </div>
+                </div>
+                <div style="margin-top: 15px; text-align: center;">
+                    <button id="exportMonitoringData" style="background: rgba(255,255,255,0.2); border: none; color: white; padding: 10px 20px; border-radius: 5px; cursor: pointer; font-size: 14px;">📥 导出监控数据</button>
+                </div>
+            </div>
+
+            <!-- 下载对话框 -->
+            <div class="download-modal" id="downloadModal" style="display: none;">
+                <div class="modal-overlay" id="modalOverlay"></div>
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h3>导出图集</h3>
+                        <button class="modal-close" id="modalClose">&times;</button>
+                    </div>
+                    <div class="modal-body">
+                        <div class="control-group">
+                            <label for="exportFileName">文件名称</label>
+                            <input type="text" id="exportFileName" placeholder="例如: game_ui">
+                        </div>
+                        <div class="control-group">
+                            <label>导出格式</label>
+                            <div class="radio-group">
+                                <label class="radio-label">
+                                    <input type="radio" name="exportFormat" value="zip" checked>
+                                    <span>ZIP压缩包 (.zip)</span>
+                                </label>
+                                <label class="radio-label">
+                                    <input type="radio" name="exportFormat" value="separate">
+                                    <span>单独文件 (.png + .plist)</span>
+                                </label>
+                            </div>
+                        </div>
+                        <div class="file-hint" id="fileHint">导出的文件为: <span id="filePreview">sprite_atlas.zip</span> (包含 .png 和 .plist)</div>
+                        <div class="modal-actions">
+                            <button class="btn-cancel" id="modalCancel">取消</button>
+                            <button class="btn-confirm" id="modalConfirm">导出</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="test-panel" id="testPanel" style="display: none; margin-top: 30px; background: #f8f9fa; border-radius: 8px; padding: 20px;">
+                <h3 style="margin-bottom: 15px; color: #333;">图集纹理测试</h3>
+                <div class="control-group" style="margin-bottom: 15px;">
+                    <label for="testFramePath" style="font-weight: 500; color: #333; margin-bottom: 8px; display: block;">纹理路径</label>
+                    <input type="text" id="testFramePath" placeholder="例如: game_ui.png" style="width: 100%; padding: 10px; border: 2px solid #e0e0e0; border-radius: 6px; font-size: 14px;">
+                    <div id="availableTextures" style="margin-top: 8px; font-size: 12px; color: #666;"></div>
+                </div>
+                <div class="button-group">
+                    <button class="btn-test" id="testBtn" style="background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%); color: white;">获取纹理</button>
+                    <button class="btn-clear-test" id="clearTestBtn" style="background: #f1f1f1; color: #333;">清除测试</button>
+                </div>
+                <div class="test-result" id="testResult" style="margin-top: 20px; display: none;">
+                    <div class="test-info" style="background: #e3f2fd; padding: 15px; border-radius: 6px; margin-bottom: 15px;">
+                        <h4 style="margin-bottom: 10px; color: #1976d2; font-size: 14px;">纹理信息</h4>
+                        <div id="testInfo" style="font-size: 13px; color: #333;"></div>
+                    </div>
+                    <div class="test-preview" style="background: white; border: 2px solid #667eea; border-radius: 6px; padding: 10px; display: flex; align-items: center; justify-content: center; min-height: 200px;">
+                        <canvas id="testCanvas"></canvas>
+                        <div class="placeholder" id="testPlaceholder" style="color: #999; display: none;">选择纹理后在此预览</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="lib/jszip.min.js"></script>
+    <script src="js/FileSaver.js"></script>
+    <script src="js/performanceOptimizer.js"></script>
+    <script src="js/config.js"></script>
+    <script src="js/smartAlgorithmSelector.js"></script>
+    <script src="js/userExperience.js"></script>
+    <script src="js/monitoringAnalytics.js"></script>
+    <script src="js/atlasPacker.js"></script>
+    <script src="js/maxRectanglesPacker.js"></script>
+    <script src="js/imageGrouper.js"></script>
+    <script src="js/multiAtlasPacker.js"></script>
+    <script src="js/app_enhanced.js"></script>
+</body>
+</html>

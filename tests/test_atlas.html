@@ -1,0 +1,201 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>图集算法测试</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', sans-serif;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        .test-section {
+            background: white;
+            border-radius: 8px;
+            padding: 20px;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        h2 {
+            margin-top: 0;
+            color: #333;
+        }
+        .test-result {
+            padding: 10px;
+            margin: 10px 0;
+            border-radius: 4px;
+            background: #f8f9fa;
+            border-left: 4px solid #667eea;
+        }
+        .log {
+            background: #1e1e1e;
+            color: #d4d4d4;
+            padding: 15px;
+            border-radius: 4px;
+            font-family: 'Consolas', monospace;
+            font-size: 12px;
+            max-height: 300px;
+            overflow-y: auto;
+        }
+        canvas {
+            border: 1px solid #ddd;
+            background: white;
+            margin: 10px 0;
+        }
+    </style>
+</head>
+<body>
+    <h1>图集生成算法测试</h1>
+
+    <div class="test-section">
+        <h2>测试参数</h2>
+        <label>
+            <input type="checkbox" id="powerOfTwo" checked>
+            使用2的幂次方尺寸
+        </label>
+        <br><br>
+        <button onclick="runTest()">运行测试</button>
+        <button onclick="clearLog()">清除日志</button>
+    </div>
+
+    <div class="test-section">
+        <h2>测试结果</h2>
+        <div id="result"></div>
+        <div id="canvasContainer"></div>
+    </div>
+
+    <div class="test-section">
+        <h2>算法日志</h2>
+        <div class="log" id="log"></div>
+    </div>
+
+    <script src="../js/atlasPacker.js"></script>
+    <script>
+        // 拦截console.log，显示在页面上
+        const logDiv = document.getElementById('log');
+        const originalLog = console.log;
+        console.log = function(...args) {
+            originalLog.apply(console, args);
+            const line = args.map(arg =>
+                typeof arg === 'object' ? JSON.stringify(arg) : String(arg)
+            ).join(' ');
+            logDiv.innerHTML += `<div>${line}</div>`;
+            logDiv.scrollTop = logDiv.scrollHeight;
+        };
+
+        function clearLog() {
+            logDiv.innerHTML = '';
+        }
+
+        // 创建测试图片
+        function createTestImage(width, height, color) {
+            const canvas = document.createElement('canvas');
+            canvas.width = width;
+            canvas.height = height;
+            const ctx = canvas.getContext('2d');
+            ctx.fillStyle = color;
+            ctx.fillRect(0, 0, width, height);
+            ctx.strokeStyle = 'white';
+            ctx.lineWidth = 2;
+            ctx.strokeRect(1, 1, width - 2, height - 2);
+            return canvas;
+        }
+
+        // 创建多个测试图片
+        function createTestImages() {
+            const colors = [
+                '#FF6B6B', '#4ECDC4', '#45B7D1', '#96CEB4',
+                '#FFEAA7', '#DDA0DD', '#98D8C8', '#F7DC6F',
+                '#BB8FCE', '#85C1E9', '#F8B739', '#52B788'
+            ];
+
+            const images = [];
+            const sizes = [
+                { w: 200, h: 150 },
+                { w: 180, h: 180 },
+                { w: 250, h: 100 },
+                { w: 120, h: 200 },
+                { w: 160, h: 160 },
+                { w: 300, h: 80 },
+                { w: 140, h: 140 },
+                { w: 220, h: 120 },
+                { w: 100, h: 180 },
+                { w: 190, h: 190 },
+                { w: 280, h: 90 },
+                { w: 150, h: 170 }
+            ];
+
+            sizes.forEach((size, index) => {
+                const canvas = createTestImage(size.w, size.h, colors[index % colors.length]);
+                images.push({
+                    name: `test_${index + 1}`,
+                    width: size.w,
+                    height: size.h,
+                    img: canvas
+                });
+            });
+
+            return images;
+        }
+
+        function runTest() {
+            clearLog();
+            const usePowerOfTwo = document.getElementById('powerOfTwo').checked;
+            const resultDiv = document.getElementById('result');
+            const canvasContainer = document.getElementById('canvasContainer');
+
+            resultDiv.innerHTML = '<p>正在测试...</p>';
+            canvasContainer.innerHTML = '';
+
+            console.log('===== 开始图集生成测试 =====');
+            console.log(`使用2的幂次方: ${usePowerOfTwo}`);
+            console.log(`测试图片数量: 12`);
+
+            const images = createTestImages();
+
+            // 计算总面积
+            const totalArea = images.reduce((sum, img) => sum + img.width * img.height, 0);
+            console.log(`图片总面积: ${totalArea} 像素`);
+
+            // 运行打包算法
+            const startTime = performance.now();
+            const result = packImages(images, 2, 2048, usePowerOfTwo);
+            const endTime = performance.now();
+
+            if (!result) {
+                resultDiv.innerHTML = '<p style="color: red;">图集生成失败</p>';
+                return;
+            }
+
+            const duration = endTime - startTime;
+            const efficiency = (totalArea / (result.width * result.height) * 100).toFixed(2);
+
+            // 显示结果
+            resultDiv.innerHTML = `
+                <div class="test-result">
+                    <strong>生成成功！</strong><br>
+                    图集尺寸: ${result.width} × ${result.height}<br>
+                    模式: ${usePowerOfTwo ? '2的幂次方' : '原始尺寸'}<br>
+                    图片数量: ${images.length}<br>
+                    空间利用率: ${efficiency}%<br>
+                    处理时间: ${duration.toFixed(2)}ms
+                </div>
+            `;
+
+            // 显示图集预览
+            const previewCanvas = document.createElement('canvas');
+            previewCanvas.width = Math.min(result.width, 600);
+            previewCanvas.height = Math.min(result.height, 400);
+            const previewCtx = previewCanvas.getContext('2d');
+            previewCtx.drawImage(result.canvas, 0, 0, previewCanvas.width, previewCanvas.height);
+            canvasContainer.appendChild(previewCanvas);
+
+            console.log('===== 测试完成 =====');
+            console.log(`最终图集: ${result.width}×${result.height}`);
+            console.log(`空间利用率: ${efficiency}%`);
+            console.log(`处理时间: ${duration.toFixed(2)}ms`);
+        }
+    </script>
+</body>
+</html>
