@@ -4,6 +4,8 @@
 
 ## 功能特性
 
+- ✅ **文件/文件夹上传**：支持选择多个文件或整个文件夹
+- ✅ **相对路径保留**：文件夹模式下保留图片的相对路径结构
 - ✅ **拖拽上传**：支持拖拽或点击上传多张图片
 - ✅ **智能打包**：优化的Shelf算法和MaxRectangles算法，高空间利用率
 - ✅ **多算法支持**：可选择Shelf或MaxRectangles算法进行打包
@@ -20,21 +22,32 @@ cocos_sprite_atlas_web_builder/
 ├── index.html              # 主页面
 ├── README.md              # 项目说明
 ├── css/
-│   └── styles.css         # 样式文件
+│   ├── styles.css         # 基础样式文件
+│   └── performance.css    # 性能优化相关样式
 ├── js/
+│   ├── app_enhanced.js           # 主应用程序（增强版）
 │   ├── atlasPacker.js            # Shelf图集打包算法
 │   ├── maxRectanglesPacker.js   # MaxRectangles图集打包算法
-│   ├── app.js                  # 主应用程序
-│   └── FileSaver.js           # 文件保存工具
+│   ├── config.js                # 配置管理
+│   ├── smartAlgorithmSelector.js # 智能算法选择器
+│   ├── userExperience.js        # 用户体验增强
+│   ├── monitoringAnalytics.js   # 监控分析
+│   ├── performanceOptimizer.js  # 性能优化器
+│   ├── imageGrouper.js          # 图片分组
+│   ├── multiAtlasPacker.js      # 多图集打包
+│   └── FileSaver.js            # 文件保存工具
 ├── lib/
 │   └── jszip.min.js      # JSZip库
 ├── tests/
 │   ├── test_atlas.html    # 完整算法测试
 │   ├── test_simple.html   # 简单功能测试
-│   └── test_algorithm.js # 算法测试脚本
+│   ├── test_algorithm.js  # 算法测试脚本
+│   └── README.md          # 测试说明
 └── docs/
-    ├── OPTIMIZATION_REPORT.md  # 优化报告
-    └── TESTING_GUIDE.md        # 测试指南
+    ├── OPTIMIZATION_GUIDE.md       # 优化指南
+    ├── OPTIMIZATION_REPORT.md      # 优化报告
+    ├── PERFORMANCE_OPTIMIZATION.md # 性能优化文档
+    └── TESTING_GUIDE.md            # 测试指南
 ```
 
 ## 快速开始
@@ -42,9 +55,10 @@ cocos_sprite_atlas_web_builder/
 ### 方法1：直接打开
 
 1. 双击 `index.html` 在浏览器中打开
-2. 拖拽图片到上传区域
-3. 配置参数后点击"生成图集"
-4. 点击"下载图集"导出
+2. 选择上传模式（文件或文件夹）
+3. 拖拽图片/文件夹到上传区域，或点击选择
+4. 配置参数后点击"生成图集"
+5. 点击"下载图集"导出
 
 ### 方法2：使用本地服务器
 
@@ -62,6 +76,19 @@ php -S localhost:8080
 然后在浏览器中访问 `http://localhost:8080`
 
 ## 使用说明
+
+### 上传模式
+
+#### 选择文件模式
+- 点击或拖拽选择多个图片文件
+- 适用于少量图片的快速打包
+- 帧名称使用图片文件名（如 `button.png`）
+
+#### 选择文件夹模式
+- 点击选择整个文件夹
+- 自动递归读取文件夹内所有图片
+- **保留相对路径**：帧名称包含相对路径（如 `ui/button.png`）
+- 适用于游戏资源的标准化打包
 
 ### 基本参数
 
@@ -209,7 +236,15 @@ php -S localhost:8080
 <dict>
   <key>frames</key>
   <dict>
-    <!-- 每个图片的信息 -->
+    <!-- 文件模式：帧名称为文件名 -->
+    <key>button.png</key>
+    <dict>...</dict>
+
+    <!-- 文件夹模式：帧名称为相对路径 -->
+    <key>ui/button.png</key>
+    <dict>...</dict>
+    <key>characters/hero.png</key>
+    <dict>...</dict>
   </dict>
   <key>metadata</key>
   <dict>
@@ -222,6 +257,32 @@ php -S localhost:8080
   </dict>
 </dict>
 </plist>
+```
+
+### 路径结构示例
+
+假设文件夹结构如下：
+```
+assets/
+├── ui/
+│   ├── button.png
+│   └── panel.png
+└── characters/
+    ├── hero.png
+    └── enemy.png
+```
+
+生成的PLIST帧名称：
+- `ui/button.png`
+- `ui/panel.png`
+- `characters/hero.png`
+- `characters/enemy.png`
+
+这样可以直接在Cocos Creator中使用原始路径引用纹理：
+```javascript
+// 直接使用相对路径
+sprite.spriteFrame = atlas.getSpriteFrame('ui/button.png');
+sprite.spriteFrame = atlas.getSpriteFrame('characters/hero.png');
 ```
 
 ## 注意事项
@@ -266,6 +327,14 @@ php -S localhost:8080
 - 确认Cocos Creator版本兼容性
 
 ## 更新日志
+
+### v3.5 Folder Support (2025)
+- ✨ **新增文件夹选择功能**：支持上传整个文件夹
+- ✨ **相对路径保留**：文件夹模式下保留图片相对路径结构
+- ✨ **上传模式切换**：文件模式和文件夹模式一键切换
+- ✨ **智能路径计算**：自动计算共同父目录作为基础路径
+- ✨ **增强的PLIST导出**：支持带路径的帧名称
+- 📝 更新使用文档和示例
 
 ### v3.0 Advanced (2025)
 - ✨ 新增MaxRectangles算法（业界最优）
