@@ -54,11 +54,19 @@
                 -->
             </div>
 
+            <div class="upload-mode-tabs" style="display: flex; gap: 10px; margin-bottom: 15px; justify-content: center;">
+                <button class="upload-tab active" id="tabFiles" data-mode="files" style="padding: 8px 20px; border: 2px solid #667eea; background: #667eea; color: white; border-radius: 20px; cursor: pointer; font-size: 14px; transition: all 0.3s;">选择文件</button>
+                <button class="upload-tab" id="tabFolder" data-mode="folder" style="padding: 8px 20px; border: 2px solid #667eea; background: white; color: #667eea; border-radius: 20px; cursor: pointer; font-size: 14px; transition: all 0.3s;">选择文件夹</button>
+            </div>
             <div class="file-upload" id="dropZone">
                 <input type="file" id="fileInput" multiple accept="image/png,image/jpeg,image/jpg">
+                <input type="file" id="folderInput" webkitdirectory directory style="display: none;">
                 <div class="file-upload-icon">📁</div>
-                <div class="file-upload-text">点击或拖拽图片到此处</div>
-                <div class="file-upload-hint">支持 PNG、JPG 格式，可多选</div>
+                <div class="file-upload-text" id="uploadText">点击或拖拽图片到此处</div>
+                <div class="file-upload-hint" id="uploadHint">支持 PNG、JPG 格式，可多选</div>
+            </div>
+            <div class="folder-info" id="folderInfo" style="display: none; margin: 10px 0; padding: 10px 15px; background: #e3f2fd; border-radius: 8px; color: #1976d2; font-size: 13px;">
+                <span id="folderPath"></span>
             </div>
 
             <div class="preview-container">

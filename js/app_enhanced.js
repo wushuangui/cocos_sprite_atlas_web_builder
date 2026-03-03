@@ -49,6 +49,12 @@ class AppState {
         this.atlases = [];
         this.isProcessing = false;
 
+        // 重置文件夹路径
+        baseFolderPath = '';
+        if (folderInfo) {
+            folderInfo.style.display = 'none';
+        }
+
         // 重置测试面板
         if (testFramePath) testFramePath.value = '';
         if (testResult) testResult.style.display = 'none';
@@ -143,9 +149,14 @@ class AppState {
         this.images.forEach((item, index) => {
             const div = document.createElement('div');
             div.className = 'image-item';
+
+            // 根据路径长度调整显示
+            const displayName = item.name;
+            const isLongPath = displayName.includes('/');
+
             div.innerHTML = `
                 <img src="${item.img.src}" alt="${item.name}">
-                <span>${item.name}</span>
+                <span class="image-name ${isLongPath ? 'long-path' : ''}" title="${displayName}">${displayName}</span>
                 <div class="image-size">${item.width}×${item.height}</div>
                 <button class="delete-btn" data-index="${index}" title="删除">×</button>
             `;
@@ -159,6 +170,22 @@ class AppState {
 
             imageList.appendChild(div);
         });
+
+        // 添加长路径样式
+        if (!document.getElementById('longPathStyle')) {
+            const style = document.createElement('style');
+            style.id = 'longPathStyle';
+            style.textContent = `
+                .image-name.long-path {
+                    font-size: 11px;
+                    max-width: 200px;
+                    overflow: hidden;
+                    text-overflow: ellipsis;
+                    white-space: nowrap;
+                }
+            `;
+            document.head.appendChild(style);
+        }
     }
 
     // 删除单张图片
@@ -336,6 +363,7 @@ const appState = new AppState();
 // DOM元素引用
 const dropZone = document.getElementById('dropZone');
 const fileInput = document.getElementById('fileInput');
+const folderInput = document.getElementById('folderInput');
 const imageList = document.getElementById('imageList');
 const atlasPreview = document.getElementById('atlasPreview');
 const generateBtn = document.getElementById('generateBtn');
@@ -344,6 +372,16 @@ const clearBtn = document.getElementById('clearBtn');
 const imageCount = document.getElementById('imageCount');
 const status = document.getElementById('status');
 const stats = document.getElementById('stats');
+const tabFiles = document.getElementById('tabFiles');
+const tabFolder = document.getElementById('tabFolder');
+const uploadText = document.getElementById('uploadText');
+const uploadHint = document.getElementById('uploadHint');
+const folderInfo = document.getElementById('folderInfo');
+const folderPath = document.getElementById('folderPath');
+
+// 上传模式状态
+let uploadMode = 'files'; // 'files' 或 'folder'
+let baseFolderPath = ''; // 基础文件夹路径（用于相对路径计算）
 
 // 测试面板元素引用
 const testPanel = document.getElementById('testPanel');
@@ -364,18 +402,170 @@ uxEnhancer.initializeDragEnhancement(dropZone, (files) => {
         count: files.length,
         totalSize: files.reduce((sum, f) => sum + f.size, 0)
     });
-    handleFiles(files);
+    // 拖拽文件时，尝试从webkitRelativePath获取相对路径
+    handleFiles(files, true);
 });
+
+// 上传模式切换
+tabFiles?.addEventListener('click', () => {
+    setUploadMode('files');
+});
+
+tabFolder?.addEventListener('click', () => {
+    setUploadMode('folder');
+});
+
+function setUploadMode(mode) {
+    uploadMode = mode;
+
+    // 更新标签样式
+    if (tabFiles && tabFolder) {
+        if (mode === 'files') {
+            tabFiles.style.background = '#667eea';
+            tabFiles.style.color = 'white';
+            tabFolder.style.background = 'white';
+            tabFolder.style.color = '#667eea';
+            uploadText.textContent = '点击或拖拽图片到此处';
+            uploadHint.textContent = '支持 PNG、JPG 格式，可多选';
+        } else {
+            tabFolder.style.background = '#667eea';
+            tabFolder.style.color = 'white';
+            tabFiles.style.background = 'white';
+            tabFiles.style.color = '#667eea';
+            uploadText.textContent = '点击选择文件夹';
+            uploadHint.textContent = '将打包文件夹内所有图片，保留相对路径';
+        }
+    }
+}
 
 // 事件监听器
-dropZone.addEventListener('click', () => fileInput.click());
-
-fileInput.addEventListener('change', (e) => {
-    handleFiles(e.target.files);
+dropZone.addEventListener('click', () => {
+    if (uploadMode === 'files') {
+        fileInput.click();
+    } else {
+        folderInput.click();
+    }
 });
 
+fileInput.addEventListener('change', (e) => {
+    handleFiles(e.target.files, false);
+});
+
+folderInput.addEventListener('change', (e) => {
+    handleFolderFiles(e.target.files);
+});
+
+// 处理文件夹上传
+async function handleFolderFiles(files) {
+    const allFiles = Array.from(files);
+
+    // 过滤图片文件
+    const imageFiles = allFiles.filter(file =>
+        file.type === 'image/png' || file.type === 'image/jpeg' || file.type === 'image/jpg'
+    );
+
+    if (imageFiles.length === 0) {
+        showStatus('文件夹中没有找到有效的图片文件', 'error');
+        return;
+    }
+
+    // 计算共同的基础路径
+    baseFolderPath = calculateBasePath(imageFiles);
+
+    // 显示文件夹信息
+    if (folderInfo && folderPath) {
+        folderPath.textContent = `已选择: ${baseFolderPath || '文件夹'} (${imageFiles.length} 张图片)`;
+        folderInfo.style.display = 'block';
+    }
+
+    showStatus(`正在加载 ${imageFiles.length} 张图片...`, 'info');
+    PerformanceOptimizer.progressManager.show('加载图片中...');
+
+    try {
+        PerformanceMonitor.startMeasure('loadImages');
+
+        // 使用分批处理加载图片（带相对路径）
+        appState.batchProcessor.setProgressCallback((progress, current, total) => {
+            PerformanceOptimizer.progressManager.update(progress, current, total);
+        });
+
+        const newImages = await appState.batchProcessor.processBatch(
+            imageFiles,
+            (file) => loadSingleImage(file, true)
+        );
+
+        const duration = PerformanceMonitor.endMeasure('loadImages');
+
+        appState.addImages(newImages);
+
+        PerformanceOptimizer.progressManager.hide();
+        showStatus(`成功加载 ${newImages.length} 张图片 (耗时 ${duration.toFixed(0)}ms)`, 'success');
+
+        // 显示缓存统计
+        const cacheStats = appState.algorithmCache.getStats();
+        console.log('[Cache Stats]', cacheStats);
+
+        // 更新算法建议
+        updateAlgorithmSuggestion();
+
+    } catch (error) {
+        PerformanceOptimizer.progressManager.hide();
+
+        // 跟踪错误
+        analytics.trackError(error, {
+            operation: '图片加载',
+            step: 'loadImages',
+            fileCount: imageFiles.length
+        });
+
+        // 显示详细错误信息
+        uxEnhancer.showDetailedError(error, {
+            operation: '图片加载',
+            step: '读取和处理',
+            fileCount: imageFiles.length
+        });
+
+        console.error('加载错误:', error);
+    }
+}
+
+// 计算基础路径（找出所有文件的共同父目录）
+function calculateBasePath(files) {
+    if (files.length === 0) return '';
+
+    // 获取所有文件的相对路径
+    const paths = files.map(f => f.webkitRelativePath || f.name);
+
+    // 找到第一个文件的路径作为基础
+    let basePath = paths[0];
+
+    // 遍历所有路径，找出共同前缀
+    for (let i = 1; i < paths.length; i++) {
+        const path = paths[i];
+        let commonLength = 0;
+
+        while (commonLength < basePath.length &&
+               commonLength < path.length &&
+               basePath[commonLength] === path[commonLength]) {
+            commonLength++;
+        }
+
+        basePath = basePath.substring(0, commonLength);
+    }
+
+    // 截取到最后一个 / 的位置
+    const lastSlash = basePath.lastIndexOf('/');
+    if (lastSlash > 0) {
+        basePath = basePath.substring(0, lastSlash);
+    } else {
+        basePath = '';
+    }
+
+    return basePath;
+}
+
 // 增强的文件处理
-async function handleFiles(files) {
+async function handleFiles(files, useRelativePath = false) {
     const imageFiles = Array.from(files).filter(file =>
         file.type === 'image/png' || file.type === 'image/jpeg' || file.type === 'image/jpg'
     );
@@ -383,6 +573,15 @@ async function handleFiles(files) {
     if (imageFiles.length === 0) {
         showStatus('请选择有效的图片文件', 'error');
         return;
+    }
+
+    // 如果是拖拽文件且有相对路径，尝试计算基础路径
+    if (useRelativePath && imageFiles[0]?.webkitRelativePath) {
+        baseFolderPath = calculateBasePath(imageFiles);
+        if (folderInfo && folderPath && baseFolderPath) {
+            folderPath.textContent = `已选择: ${baseFolderPath} (${imageFiles.length} 张图片)`;
+            folderInfo.style.display = 'block';
+        }
     }
 
     showStatus(`正在加载 ${imageFiles.length} 张图片...`, 'info');
@@ -398,7 +597,7 @@ async function handleFiles(files) {
 
         const newImages = await appState.batchProcessor.processBatch(
             imageFiles,
-            loadSingleImage
+            (file) => loadSingleImage(file, useRelativePath)
         );
 
         const duration = PerformanceMonitor.endMeasure('loadImages');
@@ -481,16 +680,37 @@ function updateAlgorithmSuggestion() {
 // 监听算法选择变化
 document.getElementById('algorithm')?.addEventListener('change', updateAlgorithmSuggestion);
 
-// 单张图片加载函数
-function loadSingleImage(file) {
+// 单张图片加载函数（支持相对路径）
+function loadSingleImage(file, useRelativePath = false) {
     return new Promise((resolve, reject) => {
         const reader = new FileReader();
         reader.onload = (e) => {
             const img = new Image();
             img.onload = () => {
+                // 计算图片名称（相对路径或仅文件名）
+                let displayName, fullPath;
+
+                if (useRelativePath && file.webkitRelativePath) {
+                    // 使用完整的相对路径作为名称
+                    fullPath = file.webkitRelativePath;
+                    // 移除基础路径前缀，保留相对路径
+                    if (baseFolderPath && fullPath.startsWith(baseFolderPath + '/')) {
+                        displayName = fullPath.substring(baseFolderPath.length + 1);
+                    } else {
+                        displayName = fullPath;
+                    }
+                    // 移除扩展名
+                    displayName = displayName.replace(/\.(png|jpe?g)$/i, '');
+                } else {
+                    // 仅使用文件名
+                    displayName = file.name.replace(/\.(png|jpe?g)$/i, '');
+                    fullPath = file.name;
+                }
+
                 resolve({
                     img,
-                    name: file.name.replace(/\.(png|jpe?g)$/i, ''),
+                    name: displayName,
+                    fullPath: fullPath,
                     width: img.width,
                     height: img.height,
                     file
@@ -956,6 +1176,7 @@ function generatePlist(atlasName, width, height, frames) {
 
     let framesContent = '';
     frames.forEach(frame => {
+        // 使用 frame.name 作为帧名，它已经是相对路径格式
         const frameName = frame.name + '.png';
         const frameX = Math.round(frame.x);
         const frameY = Math.round(frame.y);
@@ -967,8 +1188,16 @@ function generatePlist(atlasName, width, height, frames) {
         const offsetY = Math.round(frame.offsetY || 0);
         const rotated = frame.rotated || false;
 
+        // 对 frameName 中的特殊字符进行 XML 转义
+        const escapedFrameName = frameName
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;')
+            .replace(/'/g, '&apos;');
+
         framesContent += `
-    <key>${frameName}</key>
+    <key>${escapedFrameName}</key>
     <dict>
       <key>frame</key>
       <string>{{${frameX},${frameY}},{${frameWidth},${frameHeight}}}</string>
@@ -1021,12 +1250,24 @@ function testTexture() {
     }
 
     const frameName = framePath.replace(/\.png$/i, '');
-    const frame = appState.frames.find(f => f.name === frameName);
+    // 支持相对路径匹配，尝试多种匹配方式
+    let frame = appState.frames.find(f => f.name === frameName);
+
+    // 如果没有精确匹配，尝试匹配结尾部分
+    if (!frame) {
+        frame = appState.frames.find(f =>
+            f.name === frameName ||
+            f.name.endsWith('/' + frameName) ||
+            f.name.endsWith('\\' + frameName)
+        );
+    }
 
     if (!frame) {
-        // 显示可用的纹理列表帮助用户
-        const availableFrames = appState.frames.map(f => f.name).join(', ');
-        showStatus(`未找到纹理: ${framePath}。可用的纹理: ${availableFrames}`, 'error');
+        // 显示可用的纹理列表帮助用户（限制数量避免过长）
+        const availableFrames = appState.frames.slice(0, 10).map(f => f.name).join(', ');
+        const moreCount = appState.frames.length - 10;
+        const moreText = moreCount > 0 ? ` 等...（共${appState.frames.length}个）` : '';
+        showStatus(`未找到纹理: ${framePath}。示例: ${availableFrames}${moreText}`, 'error');
         return;
     }
 
@@ -1125,10 +1366,16 @@ clearBtn.addEventListener('click', () => {
     stats.style.display = 'none';
     status.style.display = 'none';
     fileInput.value = '';
+    folderInput.value = '';
 
     // 隐藏测试面板
     if (testPanel) {
         testPanel.style.display = 'none';
+    }
+
+    // 重置文件夹信息显示
+    if (folderInfo) {
+        folderInfo.style.display = 'none';
     }
 });
 
